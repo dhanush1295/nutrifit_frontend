@@ -21,9 +21,10 @@ export default function HealthFilterDashboard() {
           api.get('/meals/foods')
         ]);
         
-        const conds = (profileRes.data.profile.conditions || []).filter(c => c !== 'none_');
+        const p = profileRes.data.user;
+        const conds = (p.conditions ? p.conditions.split(',') : []).filter(c => Boolean(c) && c !== 'none_');
         setConditions(conds);
-        setDiet(profileRes.data.profile.diet || 'pureVegetarian');
+        setDiet(p.diet || 'pureVegetarian');
         setCaloriesEaten(intakeRes.data.totals.calories);
 
         const allFoods = foodsRes.data.foods || [];
@@ -34,8 +35,8 @@ export default function HealthFilterDashboard() {
 
         for (const f of allFoods) {
           // Diet filter logic (simplified for UI display purposes)
-          if (profileRes.data.profile.diet === 'pureVegetarian' && !['pureVegetarian', 'vegan'].includes(f.diet)) continue;
-          if (profileRes.data.profile.diet === 'vegan' && f.diet !== 'vegan') continue;
+          if (p.diet === 'pureVegetarian' && !['pureVegetarian', 'vegan'].includes(f.diet)) continue;
+          if (p.diet === 'vegan' && f.diet !== 'vegan') continue;
 
           const fAvoid = new Set((f.avoid_for || '').split(',').map(s => s.trim()).filter(Boolean));
           let hasConflict = false;

@@ -13,10 +13,10 @@ export default function PrivacyData() {
     setExporting(true);
     try {
       const res = await api.get('/profile');
-      const p = res.data.profile;
+      const p = res.data.user;
       
-      const conditions = p.conditions && p.conditions.length > 0 ? p.conditions.join(';') : 'None';
-      const csv = `Name,Age,Weight(kg),Height(cm),Conditions\n${p.name || 'User'},${p.age || ''},${p.weight_kg || ''},${p.height_cm || ''},${conditions}`;
+      const conditions = p.conditions || 'None';
+      const csv = `Name,Age,Weight(kg),Height(cm),Conditions\n${p.full_name || 'User'},${p.age || ''},${p.weight_kg || ''},${p.height_cm || ''},${conditions}`;
       
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);

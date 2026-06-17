@@ -17,8 +17,8 @@ export default function EditProfile() {
     const fetchProfile = async () => {
       try {
         const res = await api.get('/profile');
-        const p = res.data.profile;
-        setName(p.name || '');
+        const p = res.data.user;
+        setName(p.full_name || '');
         setAge(p.age || '');
         setGender(p.gender || 'Male');
         setHeight(p.height_cm || '');
@@ -34,7 +34,7 @@ export default function EditProfile() {
     setLoading(true);
     try {
       await api.put('/profile', {
-        name,
+        full_name: name,
         age: parseInt(age) || null,
         gender,
         height_cm: parseFloat(height) || null,

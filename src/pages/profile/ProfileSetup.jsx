@@ -16,6 +16,15 @@ export default function ProfileSetup() {
   const [conditions, setConditions] = useState([]);
   const [diet, setDiet] = useState('pureVegetarian');
 
+  const bmi = (weight && height) ? (parseFloat(weight) / Math.pow(parseFloat(height) / 100, 2)).toFixed(1) : null;
+  const getBmiCategory = (val) => {
+    if (!val) return '';
+    if (val < 18.5) return 'Underweight';
+    if (val < 25) return 'Normal';
+    if (val < 30) return 'Overweight';
+    return 'Obese';
+  };
+
   const availableConditions = [
     { id: 'diabetes', label: 'Diabetes' },
     { id: 'hypertension', label: 'Hypertension' },
@@ -108,6 +117,16 @@ export default function ProfileSetup() {
               <input type="number" value={weight} onChange={e => setWeight(e.target.value)} style={inputStyle} />
             </div>
           </div>
+          
+          {bmi && (
+            <div style={{ marginTop: 8, padding: '16px', background: 'rgba(124, 58, 237, 0.1)', borderRadius: 16, border: '1px solid rgba(124, 58, 237, 0.2)' }}>
+              <div style={{ fontSize: 12, color: '#A78BFA', fontWeight: 600, marginBottom: 4 }}>ESTIMATED BMI</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 24, fontWeight: 'bold', color: 'white' }}>{bmi}</span>
+                <span style={{ fontSize: 14, color: 'var(--text-light-muted)' }}>{getBmiCategory(bmi)}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <button className="btn-primary" style={{ marginTop: '20px' }} onClick={() => setStep(2)}>

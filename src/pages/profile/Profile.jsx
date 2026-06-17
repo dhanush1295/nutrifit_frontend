@@ -16,12 +16,12 @@ export default function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get('/profile');
+        const p = res.data.user;
         setProfile({
-          name: res.data.profile.name || 'User',
-          weight_kg: res.data.profile.weight_kg || 0,
-          height_cm: res.data.profile.height_cm || 0,
-          conditions: (res.data.profile.conditions || []).filter(c => c !== 'none_')
+          name: p.full_name || 'User',
+          weight_kg: p.weight_kg || 0,
+          height_cm: p.height_cm || 0,
+          conditions: (p.conditions ? p.conditions.split(',') : []).filter(c => Boolean(c) && c !== 'none_')
         });
       } catch (err) {
         console.error("Failed to fetch profile", err);

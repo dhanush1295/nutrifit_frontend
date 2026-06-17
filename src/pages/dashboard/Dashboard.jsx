@@ -53,10 +53,10 @@ export default function Dashboard() {
         api.get('/notifications')
       ]);
 
-      const p = profileRes.data.profile;
-      const conds = (p.conditions || []).filter(c => c !== 'none_');
+      const p = profileRes.data.user;
+      const conds = (p.conditions ? p.conditions.split(',') : []).filter(c => Boolean(c) && c !== 'none_');
       setProfile({
-        name: p.name || 'User',
+        name: p.full_name || 'User',
         age: p.age || 28,
         gender: p.gender || 'Male',
         weight_kg: p.weight_kg || 74.5,
