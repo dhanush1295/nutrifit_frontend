@@ -1,11 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, AlertTriangle } from 'lucide-react';
+import api from '../../services/api';
 
 export default function DeleteAccount() {
   const navigate = useNavigate();
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    try {
+      await api.delete('/auth/delete-account');
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+    }
     localStorage.clear();
     navigate('/login');
   };
