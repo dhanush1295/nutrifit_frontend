@@ -178,7 +178,7 @@ export default function Meals() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 16px 14px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>NutriFit</h1>
         <div style={{ fontSize: '11px', fontWeight: '600', color: '#34D399', backgroundColor: 'rgba(52, 211, 153, 0.12)', padding: '5px 10px', borderRadius: '10px' }}>
-          {selectedDiet === 'pureVegetarian' ? 'Pure Vegetarian' : selectedDiet === 'vegan' ? 'Vegan' : 'Non-Vegetarian'}
+          {userDiet === 'pureVegetarian' ? 'Pure Vegetarian' : userDiet === 'vegan' ? 'Vegan' : 'Non-Vegetarian'}
         </div>
       </div>
 
