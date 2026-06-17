@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Check, ChevronLeft } from 'lucide-react';
 import api from '../../services/api';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
+  const location = useLocation();
   
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(location.state?.step || 1);
   const [name, setName] = useState('');
   const [age, setAge] = useState('25');
   const [gender, setGender] = useState('Male');
@@ -79,11 +80,11 @@ export default function ProfileSetup() {
   const handleSave = async () => {
     try {
       await api.put('/profile', {
-        full_name: name,
-        age: parseInt(age),
-        gender: gender,
-        height_cm: parseFloat(height),
-        weight_kg: parseFloat(weight)
+        full_name: name || 'User',
+        age: parseInt(age) || 25,
+        gender: gender || 'Male',
+        height_cm: parseFloat(height) || 170,
+        weight_kg: parseFloat(weight) || 70
       });
 
       await api.put('/profile/health', {

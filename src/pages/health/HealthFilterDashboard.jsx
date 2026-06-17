@@ -95,7 +95,7 @@ export default function HealthFilterDashboard() {
       <div style={{ marginBottom: '28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
           <span style={{ fontSize: '12px', fontWeight: '600', color: 'gray', letterSpacing: '1.2px' }}>ACTIVE FILTERS</span>
-          <span style={{ fontSize: '13px', fontWeight: '600', color: '#A78BFA', cursor: 'pointer' }} onClick={() => navigate('/setup')}>Edit</span>
+          <span style={{ fontSize: '13px', fontWeight: '600', color: '#A78BFA', cursor: 'pointer' }} onClick={() => navigate('/setup', { state: { step: 2 } })}>Edit</span>
         </div>
         {conditions.length === 0 ? (
           <div style={{ fontSize: '14px', color: 'gray' }}>No conditions selected</div>

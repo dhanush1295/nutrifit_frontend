@@ -34,11 +34,11 @@ export default function EditProfile() {
     setLoading(true);
     try {
       await api.put('/profile', {
-        full_name: name,
-        age: parseInt(age) || null,
-        gender,
-        height_cm: parseFloat(height) || null,
-        weight_kg: parseFloat(weight) || null
+        full_name: name || 'User',
+        age: parseInt(age) || 25,
+        gender: gender || 'Male',
+        height_cm: parseFloat(height) || 170,
+        weight_kg: parseFloat(weight) || 70
       });
       navigate('/profile');
     } catch (err) {
