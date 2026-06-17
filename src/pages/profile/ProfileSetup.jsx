@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft } from 'lucide-react';
 import api from '../../services/api';
@@ -15,6 +15,29 @@ export default function ProfileSetup() {
   
   const [conditions, setConditions] = useState([]);
   const [diet, setDiet] = useState('pureVegetarian');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get('/profile');
+        const p = res.data.user;
+        if (p) {
+          if (p.full_name) setName(p.full_name);
+          if (p.age) setAge(p.age.toString());
+          if (p.gender) setGender(p.gender);
+          if (p.height_cm) setHeight(p.height_cm.toString());
+          if (p.weight_kg) setWeight(p.weight_kg.toString());
+          if (p.diet) setDiet(p.diet);
+          if (p.conditions) {
+            setConditions(p.conditions.split(',').filter(c => Boolean(c)));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch existing profile", err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const bmi = (weight && height) ? (parseFloat(weight) / Math.pow(parseFloat(height) / 100, 2)).toFixed(1) : null;
   const getBmiCategory = (val) => {
