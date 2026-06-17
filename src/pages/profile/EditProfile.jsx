@@ -1,23 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, ChevronLeft } from 'lucide-react';
+import api from '../../services/api';
 
 export default function EditProfile() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState(localStorage.getItem('userName') || 'Dhanush');
-  const [age, setAge] = useState(localStorage.getItem('userAge') || '28');
-  const [gender, setGender] = useState(localStorage.getItem('userGender') || 'Male');
-  const [height, setHeight] = useState(localStorage.getItem('userHeight') || '178');
-  const [weight, setWeight] = useState(localStorage.getItem('userWeight') || '74.5');
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('Male');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    localStorage.setItem('userName', name);
-    localStorage.setItem('userAge', age);
-    localStorage.setItem('userGender', gender);
-    localStorage.setItem('userHeight', height);
-    localStorage.setItem('userWeight', weight);
-    navigate('/profile');
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get('/profile');
+        const p = res.data.profile;
+        setName(p.name || '');
+        setAge(p.age || '');
+        setGender(p.gender || 'Male');
+        setHeight(p.height_cm || '');
+        setWeight(p.weight_kg || '');
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await api.put('/profile', {
+        name,
+        age: parseInt(age) || null,
+        gender,
+        height_cm: parseFloat(height) || null,
+        weight_kg: parseFloat(weight) || null
+      });
+      navigate('/profile');
+    } catch (err) {
+      console.error("Failed to save profile", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputContainerStyle = {
@@ -57,8 +85,8 @@ export default function EditProfile() {
           <span style={{ fontSize: '16px' }}>Cancel</span>
         </button>
         <div style={{ fontSize: '18px', fontWeight: 'bold' }}>Edit Profile</div>
-        <button onClick={handleSave} style={{ background: 'none', border: 'none', color: '#A78BFA', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: 'bold' }}>
-          Save
+        <button onClick={handleSave} disabled={loading} style={{ background: 'none', border: 'none', color: '#A78BFA', cursor: 'pointer', padding: 0, fontSize: '16px', fontWeight: 'bold' }}>
+          {loading ? 'Saving...' : 'Save'}
         </button>
       </div>
 

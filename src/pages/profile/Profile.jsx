@@ -1,14 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HelpCircle, Pencil, ChevronRight, Lock, LogOut, BriefcaseMedical } from 'lucide-react';
+import api from '../../services/api';
 
 export default function Profile() {
   const navigate = useNavigate();
   
-  const userName = localStorage.getItem('userName') || 'Dhanush';
-  const weightKg = parseFloat(localStorage.getItem('userWeight')) || 74.5;
-  const heightCm = parseFloat(localStorage.getItem('userHeight')) || 178;
-  const selectedConditions = (localStorage.getItem('selectedConditions') || '').split(',').filter(Boolean).filter(c => c !== 'none_');
+  const [profile, setProfile] = useState({
+    name: 'User',
+    weight_kg: 0,
+    height_cm: 0,
+    conditions: []
+  });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get('/profile');
+        setProfile({
+          name: res.data.profile.name || 'User',
+          weight_kg: res.data.profile.weight_kg || 0,
+          height_cm: res.data.profile.height_cm || 0,
+          conditions: (res.data.profile.conditions || []).filter(c => c !== 'none_')
+        });
+      } catch (err) {
+        console.error("Failed to fetch profile", err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -16,7 +36,7 @@ export default function Profile() {
     navigate('/login');
   };
 
-  const firstLetter = userName.charAt(0).toUpperCase();
+  const firstLetter = profile.name.charAt(0).toUpperCase();
 
   const cardBG = {
     background: 'linear-gradient(to bottom right, #171725, #12121D, #0B0B14)',
@@ -83,13 +103,13 @@ export default function Profile() {
               <Pencil size={14} />
             </button>
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{userName}</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{profile.name}</div>
         </div>
 
         {/* Weight & Height */}
         <div style={{ display: 'flex', gap: '12px' }}>
-          <MetricCard title="WEIGHT" value={weightKg.toFixed(1)} unit="kg" />
-          <MetricCard title="HEIGHT" value={heightCm.toFixed(0)} unit="cm" />
+          <MetricCard title="WEIGHT" value={profile.weight_kg.toFixed(1)} unit="kg" />
+          <MetricCard title="HEIGHT" value={profile.height_cm.toFixed(0)} unit="cm" />
         </div>
 
         {/* Health Profile */}
@@ -103,7 +123,7 @@ export default function Profile() {
           <span style={{ fontSize: '15px', marginLeft: '12px' }}>Conditions & Injuries</span>
           <div style={{ flex: 1 }}></div>
           <div style={{ fontSize: '11px', fontWeight: '500', padding: '6px 10px', backgroundColor: 'rgba(167, 139, 250, 0.15)', borderRadius: '16px', marginRight: '10px' }}>
-            {selectedConditions.length} active
+            {profile.conditions.length} active
           </div>
           <ChevronRight size={16} color="gray" />
         </button>

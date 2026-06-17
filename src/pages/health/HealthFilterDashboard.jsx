@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, ShieldCheck, AlertTriangle, XCircle, ChevronRight } from 'lucide-react';
-import { getSafeFoods, getAvoidFoods } from '../../utils/FoodDatabase';
+import api from '../../services/api';
 
 export default function HealthFilterDashboard() {
   const navigate = useNavigate();
@@ -9,18 +9,56 @@ export default function HealthFilterDashboard() {
   const [conditions, setConditions] = useState([]);
   const [diet, setDiet] = useState('pureVegetarian');
   const [caloriesEaten, setCaloriesEaten] = useState(0);
+  const [safeFoods, setSafeFoods] = useState([]);
+  const [avoidFoods, setAvoidFoods] = useState([]);
 
   useEffect(() => {
-    const savedCond = localStorage.getItem('selectedConditions');
-    if (savedCond) setConditions(savedCond.split(',').filter(c => c !== 'none_'));
-    const savedDiet = localStorage.getItem('selectedDiet');
-    if (savedDiet) setDiet(savedDiet);
-    const eaten = parseFloat(localStorage.getItem('caloriesEaten')) || 360;
-    setCaloriesEaten(eaten);
-  }, []);
+    const fetchData = async () => {
+      try {
+        const [profileRes, intakeRes, foodsRes] = await Promise.all([
+          api.get('/profile'),
+          api.get('/intake/today'),
+          api.get('/meals/foods')
+        ]);
+        
+        const conds = (profileRes.data.profile.conditions || []).filter(c => c !== 'none_');
+        setConditions(conds);
+        setDiet(profileRes.data.profile.diet || 'pureVegetarian');
+        setCaloriesEaten(intakeRes.data.totals.calories);
 
-  const safeFoods = getSafeFoods(new Set(conditions), diet).slice(0, 3);
-  const avoidFoods = getAvoidFoods(new Set(conditions), diet).slice(0, 3);
+        const allFoods = foodsRes.data.foods || [];
+        const condSet = new Set(conds);
+        
+        const safe = [];
+        const avoid = [];
+
+        for (const f of allFoods) {
+          // Diet filter logic (simplified for UI display purposes)
+          if (profileRes.data.profile.diet === 'pureVegetarian' && !['pureVegetarian', 'vegan'].includes(f.diet)) continue;
+          if (profileRes.data.profile.diet === 'vegan' && f.diet !== 'vegan') continue;
+
+          const fAvoid = new Set((f.avoid_for || '').split(',').map(s => s.trim()).filter(Boolean));
+          let hasConflict = false;
+          for (const c of fAvoid) {
+            if (condSet.has(c)) {
+              hasConflict = true;
+              break;
+            }
+          }
+
+          if (hasConflict) avoid.push(f);
+          else safe.push(f);
+        }
+
+        setSafeFoods(safe.slice(0, 3));
+        setAvoidFoods(avoid.slice(0, 3));
+
+      } catch (err) {
+        console.error("Failed to load health data:", err);
+      }
+    };
+    fetchData();
+  }, []);
 
   const giLoadPercentage = Math.min((caloriesEaten / 2000.0) * 100, 100);
 

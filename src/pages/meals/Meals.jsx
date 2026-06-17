@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
-import { loadMeal } from '../../utils/FoodDatabase';
+import api from '../../services/api';
 import SwapMealSheet from '../../components/SwapMealSheet';
 import { calculateBaseGoal } from '../../utils/healthCalculator';
 
@@ -8,36 +8,54 @@ export default function Meals() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [expandedMeal, setExpandedMeal] = useState('Breakfast');
   const [meals, setMeals] = useState({ breakfast: null, lunch: null, snack: null, dinner: null });
+  const [eaten, setEaten] = useState(0);
+  const [baseGoal, setBaseGoal] = useState(2000);
+  const [userDiet, setUserDiet] = useState('pureVegetarian');
   
   // Swap Sheet State
   const [swapOpen, setSwapOpen] = useState(false);
   const [swapType, setSwapType] = useState('');
   const [swapCurrentName, setSwapCurrentName] = useState('');
 
-  const age = parseInt(localStorage.getItem('userAge')) || 28;
-  const gender = localStorage.getItem('userGender') || 'Male';
-  const weightKg = parseFloat(localStorage.getItem('userWeight')) || 74.5;
-  const heightCm = parseFloat(localStorage.getItem('userHeight')) || 178;
-  const selectedConditions = (localStorage.getItem('selectedConditions') || '').split(',').filter(Boolean);
-  const selectedDiet = localStorage.getItem('selectedDiet') || 'pureVegetarian';
-  
-  const baseGoal = calculateBaseGoal(gender, weightKg, heightCm, age);
   const mealCalorieLimit = Math.floor(baseGoal * 0.4);
-  const eaten = parseFloat(localStorage.getItem('caloriesEaten')) || 0;
   const remaining = Math.max(0, baseGoal - eaten);
   const calPercent = Math.min((eaten / baseGoal) * 100, 100);
 
-  const loadLocalMeals = () => {
-    setMeals({
-      breakfast: loadMeal('Breakfast'),
-      lunch: loadMeal('Lunch'),
-      snack: loadMeal('Snack'),
-      dinner: loadMeal('Dinner')
-    });
+  const fetchData = async () => {
+    try {
+      // 1. Fetch Profile for goals
+      const profileRes = await api.get('/profile');
+      const p = profileRes.data.profile;
+      setUserDiet(p.diet || 'pureVegetarian');
+      const goal = calculateBaseGoal(p.gender, p.weight_kg, p.height_cm, p.age);
+      setBaseGoal(goal);
+
+      // 2. Fetch Meals for selected date
+      const dStr = selectedDate.toISOString().split('T')[0];
+      const mealsRes = await api.get(`/meals/date/${dStr}`);
+      const m = mealsRes.data.meals;
+      
+      // Adapt backend structure to frontend structure
+      const adapt = (meal) => meal ? { ...meal, name: meal.food_name, diet: p.diet } : null;
+
+      setMeals({
+        breakfast: adapt(m['Breakfast']),
+        lunch: adapt(m['Lunch']),
+        snack: adapt(m['Snack']),
+        dinner: adapt(m['Dinner'])
+      });
+
+      // 3. Fetch Intake to see what's eaten
+      const intakeRes = await api.get('/intake/today');
+      setEaten(intakeRes.data.totals.calories);
+
+    } catch (err) {
+      console.error("Failed to load meals data:", err);
+    }
   };
 
   useEffect(() => {
-    loadLocalMeals();
+    fetchData();
   }, [selectedDate]);
 
   const handleSwapClick = (type, currentName) => {
@@ -46,9 +64,8 @@ export default function Meals() {
     setSwapOpen(true);
   };
 
-  const applySwap = (newItem) => {
-    localStorage.setItem(`current${swapType}`, JSON.stringify(newItem));
-    loadLocalMeals();
+  const applySwap = () => {
+    fetchData();
     setSwapOpen(false);
   };
 
@@ -229,8 +246,7 @@ export default function Meals() {
         onClose={() => setSwapOpen(false)} 
         mealType={swapType} 
         calorieLimit={mealCalorieLimit} 
-        conditions={selectedConditions} 
-        diet={selectedDiet} 
+        selectedDate={selectedDate}
         currentName={swapCurrentName} 
         onConfirm={applySwap} 
       />

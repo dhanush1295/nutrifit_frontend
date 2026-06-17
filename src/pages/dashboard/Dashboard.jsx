@@ -3,7 +3,6 @@ import { Bell, HeartPulse } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { calculateBaseGoal, calculateHydrationGoal, getConditionRecommendations } from '../../utils/healthCalculator';
-import { loadMeal, generateDefaultMeals } from '../../utils/FoodDatabase';
 import SwapMealSheet from '../../components/SwapMealSheet';
 import LogIntake from '../intake/LogIntake';
 
@@ -11,20 +10,21 @@ export default function Dashboard() {
   const navigate = useNavigate();
   
   // Profile Data
-  const userName = localStorage.getItem('userName') || 'Alex Johnson';
-  const age = parseInt(localStorage.getItem('userAge')) || 28;
-  const gender = localStorage.getItem('userGender') || 'Male';
-  const weightKg = parseFloat(localStorage.getItem('userWeight')) || 74.5;
-  const heightCm = parseFloat(localStorage.getItem('userHeight')) || 178;
-  
-  const selectedConditions = (localStorage.getItem('selectedConditions') || '').split(',').filter(Boolean);
-  const selectedDiet = localStorage.getItem('selectedDiet') || 'pureVegetarian';
-  const fastingGlucose = parseFloat(localStorage.getItem('fastingGlucose')) || 110;
-  const carbLimit = localStorage.getItem('carbLimit') || 'moderate';
+  const [profile, setProfile] = useState({
+    name: 'User',
+    age: 28,
+    gender: 'Male',
+    weight_kg: 74.5,
+    height_cm: 178,
+    conditions: [],
+    diet: 'pureVegetarian',
+    fastingGlucose: 110,
+    carbLimit: 'moderate'
+  });
 
   // Computed Goals
-  const baseGoal = calculateBaseGoal(gender, weightKg, heightCm, age);
-  const hydrationGoal = calculateHydrationGoal(weightKg, selectedConditions);
+  const [baseGoal, setBaseGoal] = useState(2000);
+  const [hydrationGoal, setHydrationGoal] = useState(2.0);
   const mealCalorieLimit = Math.floor(baseGoal * 0.4);
   const [eaten, setEaten] = useState(0);
   const remaining = Math.max(0, baseGoal - eaten);
@@ -44,40 +44,55 @@ export default function Dashboard() {
   // Log Modal State
   const [showLogIntake, setShowLogIntake] = useState(false);
 
-  const loadLocalMeals = () => {
-    let bf = loadMeal('Breakfast');
-    let lun = loadMeal('Lunch');
-    let sn = loadMeal('Snack');
-    let din = loadMeal('Dinner');
-
-    // Generate defaults if missing
-    if (!bf || !lun || !din || !sn) {
-      generateDefaultMeals(selectedConditions, selectedDiet);
-      bf = loadMeal('Breakfast');
-      lun = loadMeal('Lunch');
-      sn = loadMeal('Snack');
-      din = loadMeal('Dinner');
-    }
-
-    setMeals({ breakfast: bf, lunch: lun, snack: sn, dinner: din });
-    const tot = (bf?.calories || 0) + (lun?.calories || 0) + (din?.calories || 0) + (sn?.calories || 0);
-    setEaten(tot);
-  };
-
-  const loadNotificationsCount = async () => {
+  const fetchData = async () => {
     try {
-      const res = await api.get('/notifications');
-      if (res.data && res.data.unread_count !== undefined) {
-        setUnreadCount(res.data.unread_count);
+      const [profileRes, mealsRes, intakeRes, notifRes] = await Promise.all([
+        api.get('/profile'),
+        api.get('/meals/today'),
+        api.get('/intake/today'),
+        api.get('/notifications')
+      ]);
+
+      const p = profileRes.data.profile;
+      const conds = (p.conditions || []).filter(c => c !== 'none_');
+      setProfile({
+        name: p.name || 'User',
+        age: p.age || 28,
+        gender: p.gender || 'Male',
+        weight_kg: p.weight_kg || 74.5,
+        height_cm: p.height_cm || 178,
+        conditions: conds,
+        diet: p.diet || 'pureVegetarian',
+        fastingGlucose: p.fasting_glucose || 110,
+        carbLimit: p.carb_limit || 'moderate'
+      });
+
+      const goal = calculateBaseGoal(p.gender || 'Male', p.weight_kg || 74.5, p.height_cm || 178, p.age || 28);
+      setBaseGoal(goal);
+      setHydrationGoal(calculateHydrationGoal(p.weight_kg || 74.5, conds));
+
+      const m = mealsRes.data.meals;
+      const adapt = (meal) => meal ? { ...meal, name: meal.food_name, diet: p.diet } : null;
+      setMeals({
+        breakfast: adapt(m['Breakfast']),
+        lunch: adapt(m['Lunch']),
+        snack: adapt(m['Snack']),
+        dinner: adapt(m['Dinner'])
+      });
+
+      setEaten(intakeRes.data.totals.calories);
+      
+      if (notifRes.data && notifRes.data.unread_count !== undefined) {
+        setUnreadCount(notifRes.data.unread_count);
       }
+
     } catch (err) {
-      console.error("Failed to fetch unread count", err);
+      console.error("Failed to load dashboard data:", err);
     }
   };
 
   useEffect(() => {
-    loadLocalMeals();
-    loadNotificationsCount();
+    fetchData();
   }, []);
 
   const handleSwapClick = (type, currentName) => {
@@ -86,13 +101,12 @@ export default function Dashboard() {
     setSwapOpen(true);
   };
 
-  const applySwap = (newItem) => {
-    localStorage.setItem(`current${swapType}`, JSON.stringify(newItem));
-    loadLocalMeals();
+  const applySwap = () => {
+    fetchData();
     setSwapOpen(false);
   };
 
-  const recommendations = getConditionRecommendations(selectedConditions, selectedDiet, fastingGlucose, carbLimit);
+  const recommendations = getConditionRecommendations(profile.conditions, profile.diet, profile.fastingGlucose, profile.carbLimit);
 
   // Fake Activity Rings data
   const moveCalories = 420; const moveGoal = 500;
@@ -137,7 +151,7 @@ export default function Dashboard() {
       {/* Greeting Card */}
       <div style={{ margin: '0 20px 16px', padding: 20, background: 'var(--primary-gradient)', borderRadius: 20 }}>
         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 6 }}>Good Morning,</p>
-        <h1 style={{ fontSize: 28 }}>{userName}</h1>
+        <h1 style={{ fontSize: 28 }}>{profile.name}</h1>
       </div>
 
       {/* Calories + Ring */}
@@ -196,13 +210,13 @@ export default function Dashboard() {
       </div>
 
       {/* Conditions */}
-      {(recommendations.length > 0 || selectedDiet !== 'pureVegetarian') && (
+      {(recommendations.length > 0 || profile.diet !== 'pureVegetarian') && (
         <div style={{ margin: '0 20px 16px' }}>
           <h2 style={{ fontSize: 17, color: '#F0E6FF', marginBottom: 12 }}>Personalized Plan Highlights</h2>
           <div className="card">
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>Diet Style:</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#34D399', background: 'rgba(52, 211, 153, 0.12)', padding: '3px 8px', borderRadius: 6 }}>{selectedDiet}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#34D399', background: 'rgba(52, 211, 153, 0.12)', padding: '3px 8px', borderRadius: 6 }}>{profile.diet}</span>
             </div>
             
             {recommendations.length > 0 && (
@@ -248,8 +262,7 @@ export default function Dashboard() {
         onClose={() => setSwapOpen(false)} 
         mealType={swapType} 
         calorieLimit={mealCalorieLimit} 
-        conditions={selectedConditions} 
-        diet={selectedDiet} 
+        selectedDate={new Date()}
         currentName={swapCurrentName} 
         onConfirm={applySwap} 
       />
@@ -264,7 +277,7 @@ export default function Dashboard() {
             <button 
               onClick={() => {
                 setShowLogIntake(false);
-                loadLocalMeals(); // Refresh meals when closing
+                fetchData(); // Refresh meals when closing
               }}
               style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', padding: '8px 16px', borderRadius: 20, cursor: 'pointer' }}
             >

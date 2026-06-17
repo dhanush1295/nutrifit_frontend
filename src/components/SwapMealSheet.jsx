@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Shuffle, CheckCircle2 } from 'lucide-react';
-import { getSwapMeal } from '../utils/FoodDatabase';
+import api from '../services/api';
 
 export default function SwapMealSheet({ 
   isOpen, 
   onClose, 
   mealType, 
-  calorieLimit, 
-  conditions, 
-  diet, 
+  calorieLimit,
+  selectedDate, 
   currentName, 
   onConfirm 
 }) {
   const [candidate, setCandidate] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -21,11 +21,44 @@ export default function SwapMealSheet({
     }
   }, [isOpen, mealType]);
 
-  const shuffle = () => {
+  const shuffle = async () => {
     setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 400);
-    const result = getSwapMeal(mealType, calorieLimit, conditions, diet, currentName);
-    setCandidate(result);
+    setError(null);
+    try {
+      const dStr = selectedDate.toISOString().split('T')[0];
+      const res = await api.post('/meals/swap', {
+        meal_type: mealType,
+        date: dStr,
+        current_food: currentName,
+        calorie_limit: calorieLimit
+      });
+      setCandidate({
+        ...res.data.meal,
+        name: res.data.meal.food_name
+      });
+    } catch (err) {
+      console.error(err);
+      setCandidate(null);
+      setError(err.response?.data?.error || "Failed to fetch alternative.");
+    } finally {
+      setTimeout(() => setIsAnimating(false), 400);
+    }
+  };
+
+  const handleConfirm = async () => {
+    try {
+      const dStr = selectedDate.toISOString().split('T')[0];
+      await api.post('/meals/swap', {
+        meal_type: mealType,
+        date: dStr,
+        current_food: currentName,
+        new_food: candidate.name,
+        calorie_limit: calorieLimit
+      });
+      onConfirm(candidate);
+    } catch (err) {
+      console.error("Failed to save swap", err);
+    }
   };
 
   if (!isOpen) return null;
@@ -101,7 +134,7 @@ export default function SwapMealSheet({
             </p>
 
             <button 
-              onClick={() => onConfirm(candidate)}
+              onClick={handleConfirm}
               style={{
                 width: '100%', padding: '14px 0', borderRadius: 14, border: 'none',
                 background: 'var(--primary-gradient)', color: 'white', fontSize: 16, fontWeight: 600,
@@ -116,7 +149,7 @@ export default function SwapMealSheet({
             <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
             <h3 style={{ fontSize: 17, color: 'white', marginBottom: 8 }}>No Alternatives Found</h3>
             <p style={{ fontSize: 13, color: '#8B7AB8', lineHeight: 1.4 }}>
-              No safe options found within your calorie limit and health filters. Try adjusting your filters.
+              {error || "No safe options found within your calorie limit and health filters. Try adjusting your filters."}
             </p>
           </div>
         )}

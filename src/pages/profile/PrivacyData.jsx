@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, MessageSquare, User, Download, Trash2, ChevronRight } from 'lucide-react';
+import api from '../../services/api';
 
 export default function PrivacyData() {
   const navigate = useNavigate();
   const [healthSync, setHealthSync] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
-  const handleExportData = () => {
+  const handleExportData = async () => {
+    if (exporting) return;
+    setExporting(true);
     try {
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : {};
+      const res = await api.get('/profile');
+      const p = res.data.profile;
       
-      const conditions = user.health_conditions ? user.health_conditions.join(';') : 'None';
-      const csv = `Name,Age,Weight(kg),Height(cm),Conditions\n${user.name || 'User'},${user.age || ''},${user.weight || ''},${user.height || ''},${conditions}`;
+      const conditions = p.conditions && p.conditions.length > 0 ? p.conditions.join(';') : 'None';
+      const csv = `Name,Age,Weight(kg),Height(cm),Conditions\n${p.name || 'User'},${p.age || ''},${p.weight_kg || ''},${p.height_cm || ''},${conditions}`;
       
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -25,6 +29,8 @@ export default function PrivacyData() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Export failed:', err);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -108,7 +114,7 @@ export default function PrivacyData() {
             <button onClick={handleExportData} style={{ ...cardStyle, border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
               <IconWrapper icon={Download} color="#A78BFA" bgColor="rgba(167, 139, 250, 0.15)" />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ fontSize: '16px', fontWeight: '600' }}>Export Data</div>
+                <div style={{ fontSize: '15px', fontWeight: '500', color: '#F0E6FF' }}>{exporting ? 'Exporting...' : 'Export Data'}</div>
                 <div style={{ fontSize: '14px', color: 'gray' }}>Download your nutrition data</div>
               </div>
               <ChevronRight size={16} color="gray" />
