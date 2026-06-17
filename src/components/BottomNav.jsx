@@ -8,8 +8,8 @@ export default function BottomNav() {
   const tabs = [
     { path: '/dashboard', icon: <Home size={24} />, label: 'Home' },
     { path: '/health', icon: <Heart size={24} />, label: 'Health' },
-    { path: '/meals', icon: <Calendar size={24} />, label: 'Meals' },
     { path: '/coach', icon: <MessageCircle size={24} />, label: 'Coach' },
+    { path: '/meals', icon: <Calendar size={24} />, label: 'Meals' },
     { path: '/profile', icon: <User size={24} />, label: 'Profile' }
   ];
 

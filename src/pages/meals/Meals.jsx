@@ -25,7 +25,7 @@ export default function Meals() {
     try {
       // 1. Fetch Profile for goals
       const profileRes = await api.get('/profile');
-      const p = profileRes.data.profile;
+      const p = profileRes.data.user;
       setUserDiet(p.diet || 'pureVegetarian');
       const goal = calculateBaseGoal(p.gender, p.weight_kg, p.height_cm, p.age);
       setBaseGoal(goal);
