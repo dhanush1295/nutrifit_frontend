@@ -197,8 +197,6 @@ export default function Meals() {
               <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'gray', letterSpacing: '1px', marginBottom: '6px' }}>INGREDIENTS</div>
               <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.4' }}>{item.ingredients}</div>
             </div>
-
-            </div>
           </div>
         )}
       </div>
