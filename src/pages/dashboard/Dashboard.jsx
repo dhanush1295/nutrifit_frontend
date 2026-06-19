@@ -32,6 +32,7 @@ export default function Dashboard() {
 
   // Meals State
   const [meals, setMeals] = useState({ breakfast: null, lunch: null, snack: null, dinner: null });
+  const [eatenMeals, setEatenMeals] = useState([]);
   
   // Notification State
   const [unreadCount, setUnreadCount] = useState(0);
@@ -81,6 +82,7 @@ export default function Dashboard() {
       });
 
       setEaten(intakeRes.data.totals.calories);
+      setEatenMeals(intakeRes.data.entries.map(e => e.meal_name));
       
       if (notifRes.data && notifRes.data.unread_count !== undefined) {
         setUnreadCount(notifRes.data.unread_count);
@@ -106,6 +108,23 @@ export default function Dashboard() {
     setSwapOpen(false);
   };
 
+  const handleEatenClick = async (item) => {
+    try {
+      await api.post('/intake/log', {
+        meal_name: item.name,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        portion_g: 150,
+        date: new Date().toISOString().split('T')[0]
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to log intake:", err);
+    }
+  };
+
   const recommendations = getConditionRecommendations(profile.conditions, profile.diet, profile.fastingGlucose, profile.carbLimit);
 
   // Fake Activity Rings data
@@ -115,8 +134,9 @@ export default function Dashboard() {
 
   const renderMealRow = (item, typeLabel) => {
     if (!item) return null;
+    const isEaten = eatenMeals.includes(item.name);
     return (
-      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, marginBottom: 12 }}>
+      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, marginBottom: 12, opacity: isEaten ? 0.5 : 1 }}>
         <div style={{ width: 44, height: 44, borderRadius: 12, background: '#1A1A28', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
           {item.emoji}
         </div>
@@ -125,12 +145,22 @@ export default function Dashboard() {
           <div style={{ fontSize: 14, fontWeight: 600, color: '#F0E6FF' }}>{item.name}</div>
           <div style={{ fontSize: 11, color: '#8B7AB8' }}>{item.calories} KCAL · {item.subtitle}</div>
         </div>
-        <button 
-          onClick={() => handleSwapClick(typeLabel, item.name)}
-          style={{ padding: '6px 10px', background: 'rgba(124, 58, 237, 0.15)', borderRadius: 14, border: 'none', color: '#A78BFA', fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-        >
-          <span style={{ fontSize: 10 }}>🔄</span> Swap
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button 
+            onClick={() => !isEaten && handleEatenClick(item)}
+            disabled={isEaten}
+            style={{ padding: '6px 10px', background: isEaten ? 'rgba(255,255,255,0.1)' : 'rgba(52, 211, 153, 0.15)', borderRadius: 14, border: 'none', color: isEaten ? '#fff' : '#34D399', fontSize: 12, fontWeight: 500, cursor: isEaten ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <span style={{ fontSize: 10 }}>{isEaten ? '✅' : '🍽️'}</span> Eaten
+          </button>
+          <button 
+            onClick={() => !isEaten && handleSwapClick(typeLabel, item.name)}
+            disabled={isEaten}
+            style={{ padding: '6px 10px', background: isEaten ? 'rgba(255,255,255,0.1)' : 'rgba(124, 58, 237, 0.15)', borderRadius: 14, border: 'none', color: isEaten ? '#fff' : '#A78BFA', fontSize: 12, fontWeight: 500, cursor: isEaten ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <span style={{ fontSize: 10 }}>🔄</span> Swap
+          </button>
+        </div>
       </div>
     );
   };

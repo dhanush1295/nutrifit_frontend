@@ -9,6 +9,7 @@ export default function Meals() {
   const [expandedMeal, setExpandedMeal] = useState('Breakfast');
   const [meals, setMeals] = useState({ breakfast: null, lunch: null, snack: null, dinner: null });
   const [eaten, setEaten] = useState(0);
+  const [eatenMeals, setEatenMeals] = useState([]);
   const [baseGoal, setBaseGoal] = useState(2000);
   const [userDiet, setUserDiet] = useState('pureVegetarian');
   
@@ -48,6 +49,7 @@ export default function Meals() {
       // 3. Fetch Intake to see what's eaten
       const intakeRes = await api.get('/intake/today');
       setEaten(intakeRes.data.totals.calories);
+      setEatenMeals(intakeRes.data.entries.map(e => e.meal_name));
 
     } catch (err) {
       console.error("Failed to load meals data:", err);
@@ -67,6 +69,23 @@ export default function Meals() {
   const applySwap = () => {
     fetchData();
     setSwapOpen(false);
+  };
+
+  const handleEatenClick = async (item) => {
+    try {
+      await api.post('/intake/log', {
+        meal_name: item.name,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        portion_g: 150,
+        date: selectedDate.toISOString().split('T')[0]
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to log intake:", err);
+    }
   };
 
   // Generate date array
@@ -91,6 +110,7 @@ export default function Meals() {
   const ExpandableCard = ({ type, item }) => {
     if (!item) return null;
     const isExpanded = expandedMeal === type;
+    const isEaten = eatenMeals.includes(item.name);
     const accent = getAccentColor(type);
 
     return (
@@ -100,7 +120,8 @@ export default function Meals() {
         border: '1px solid rgba(255, 255, 255, 0.08)',
         boxShadow: '0 4px 10px rgba(0,0,0,0.35)',
         overflow: 'hidden',
-        marginBottom: '18px'
+        marginBottom: '18px',
+        opacity: isEaten ? 0.5 : 1
       }}>
         {/* Header */}
         <div 
@@ -158,13 +179,23 @@ export default function Meals() {
               <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.4' }}>{item.ingredients}</div>
             </div>
 
-            {/* Swap Button */}
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleSwapClick(type, item.name); }}
-              style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '10px 0', backgroundColor: `${accent}1A`, color: accent, border: `1px solid ${accent}4D`, borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-            >
-              <RefreshCw size={14} /> Swap This Meal
-            </button>
+            {/* Swap and Eaten Buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); if (!isEaten) handleEatenClick(item); }}
+                disabled={isEaten}
+                style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '10px 0', backgroundColor: isEaten ? 'rgba(255,255,255,0.05)' : 'rgba(52, 211, 153, 0.1)', color: isEaten ? 'gray' : '#34D399', border: isEaten ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: isEaten ? 'default' : 'pointer' }}
+              >
+                <span>{isEaten ? '✅' : '🍽️'}</span> Eaten
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); if (!isEaten) handleSwapClick(type, item.name); }}
+                disabled={isEaten}
+                style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '10px 0', backgroundColor: isEaten ? 'rgba(255,255,255,0.05)' : `${accent}1A`, color: isEaten ? 'gray' : accent, border: isEaten ? '1px solid rgba(255,255,255,0.1)' : `1px solid ${accent}4D`, borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: isEaten ? 'default' : 'pointer' }}
+              >
+                <RefreshCw size={14} /> Swap This Meal
+              </button>
+            </div>
           </div>
         )}
       </div>
