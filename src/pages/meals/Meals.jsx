@@ -108,9 +108,8 @@ export default function Meals() {
   };
 
   const ExpandableCard = ({ type, item }) => {
-    if (!item) return null;
     const isExpanded = expandedMeal === type;
-    const isEaten = eatenMeals.includes(item.name);
+    const isEaten = item ? eatenMeals.includes(item.name) : false;
     const accent = getAccentColor(type);
 
     return (
@@ -129,20 +128,40 @@ export default function Meals() {
           style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', cursor: 'pointer' }}
         >
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: `${accent}1F`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
-            {item.emoji}
+            {item ? item.emoji : '🍽️'}
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <div style={{ fontSize: '10px', fontWeight: 'bold', color: accent, letterSpacing: '0.8px' }}>{type.toUpperCase()}</div>
-            <div style={{ fontSize: '16px', fontWeight: '600', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
-            <div style={{ fontSize: '12px', color: 'gray' }}>{item.calories} kcal · {item.subtitle}</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item ? item.name : 'Loading...'}</div>
+            {item && <div style={{ fontSize: '12px', color: 'gray' }}>{item.calories} kcal · {item.subtitle}</div>}
           </div>
-          <div style={{ color: 'gray' }}>
+          
+          {item && (
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); if (!isEaten) handleEatenClick(item); }}
+                disabled={isEaten}
+                style={{ padding: '6px 8px', background: isEaten ? 'rgba(255,255,255,0.1)' : 'rgba(52, 211, 153, 0.15)', borderRadius: '12px', border: 'none', color: isEaten ? '#fff' : '#34D399', fontSize: '11px', fontWeight: '500', cursor: isEaten ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <span>{isEaten ? '✅' : '🍽️'}</span> Eaten
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); if (!isEaten) handleSwapClick(type, item.name); }}
+                disabled={isEaten}
+                style={{ padding: '6px 8px', background: isEaten ? 'rgba(255,255,255,0.1)' : `${accent}26`, borderRadius: '12px', border: 'none', color: isEaten ? '#fff' : accent, fontSize: '11px', fontWeight: '500', cursor: isEaten ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <RefreshCw size={10} /> Swap
+              </button>
+            </div>
+          )}
+
+          <div style={{ color: 'gray', marginLeft: '4px' }}>
             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </div>
         </div>
 
         {/* Expanded Content */}
-        {isExpanded && (
+        {isExpanded && item && (
           <div style={{ padding: '0 16px 16px 16px' }}>
             <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.08)', marginBottom: '14px' }}></div>
             
@@ -179,22 +198,6 @@ export default function Meals() {
               <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.4' }}>{item.ingredients}</div>
             </div>
 
-            {/* Swap and Eaten Buttons */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={(e) => { e.stopPropagation(); if (!isEaten) handleEatenClick(item); }}
-                disabled={isEaten}
-                style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '10px 0', backgroundColor: isEaten ? 'rgba(255,255,255,0.05)' : 'rgba(52, 211, 153, 0.1)', color: isEaten ? 'gray' : '#34D399', border: isEaten ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(52, 211, 153, 0.3)', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: isEaten ? 'default' : 'pointer' }}
-              >
-                <span>{isEaten ? '✅' : '🍽️'}</span> Eaten
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); if (!isEaten) handleSwapClick(type, item.name); }}
-                disabled={isEaten}
-                style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', padding: '10px 0', backgroundColor: isEaten ? 'rgba(255,255,255,0.05)' : `${accent}1A`, color: isEaten ? 'gray' : accent, border: isEaten ? '1px solid rgba(255,255,255,0.1)' : `1px solid ${accent}4D`, borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: isEaten ? 'default' : 'pointer' }}
-              >
-                <RefreshCw size={14} /> Swap This Meal
-              </button>
             </div>
           </div>
         )}

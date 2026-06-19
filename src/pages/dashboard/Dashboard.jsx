@@ -5,6 +5,7 @@ import api from '../../services/api';
 import { calculateBaseGoal, calculateHydrationGoal, getConditionRecommendations } from '../../utils/healthCalculator';
 import SwapMealSheet from '../../components/SwapMealSheet';
 import LogIntake from '../intake/LogIntake';
+import HydrationTracker from '../../components/HydrationTracker';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -31,8 +32,18 @@ export default function Dashboard() {
   const calPercent = Math.min((eaten / baseGoal) * 100, 100);
 
   // Meals State
-  const [meals, setMeals] = useState({ breakfast: null, lunch: null, snack: null, dinner: null });
+  const [meals, setMeals] = useState(() => {
+    const saved = localStorage.getItem('cachedMeals');
+    return saved ? JSON.parse(saved) : { breakfast: null, lunch: null, snack: null, dinner: null };
+  });
   const [eatenMeals, setEatenMeals] = useState([]);
+  
+  // Hydration State
+  const [hydrationL, setHydrationL] = useState(() => {
+    const saved = localStorage.getItem('hydrationL');
+    return saved ? parseFloat(saved) : 0.0;
+  });
+  const [showHydration, setShowHydration] = useState(false);
   
   // Notification State
   const [unreadCount, setUnreadCount] = useState(0);
@@ -74,12 +85,14 @@ export default function Dashboard() {
 
       const m = mealsRes.data.meals;
       const adapt = (meal) => meal ? { ...meal, name: meal.food_name, diet: p.diet } : null;
-      setMeals({
+      const newMeals = {
         breakfast: adapt(m['Breakfast']),
         lunch: adapt(m['Lunch']),
         snack: adapt(m['Snack']),
         dinner: adapt(m['Dinner'])
-      });
+      };
+      setMeals(newMeals);
+      localStorage.setItem('cachedMeals', JSON.stringify(newMeals));
 
       setEaten(intakeRes.data.totals.calories);
       setEatenMeals(intakeRes.data.entries.map(e => e.meal_name));
@@ -228,12 +241,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="card" style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column' }}>
+        <div 
+          className="card" 
+          onClick={() => setShowHydration(true)}
+          style={{ flex: 1, padding: 14, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}
+        >
           <div style={{ fontSize: 20, color: '#60A5FA', marginBottom: 10 }}>💧</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#F0E6FF', marginBottom: 2 }}>1.2L</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#F0E6FF', marginBottom: 2 }}>{hydrationL.toFixed(1)}L</div>
           <div className="label-tiny" style={{ marginBottom: 8 }}>HYDRATION</div>
           <div style={{ width: '100%', height: 5, background: '#1A1A28', borderRadius: 3, marginBottom: 8, marginTop: 'auto' }}>
-            <div style={{ width: '48%', height: '100%', background: '#60A5FA', borderRadius: 3 }} />
+            <div style={{ width: `${Math.min((hydrationL / hydrationGoal) * 100, 100)}%`, height: '100%', background: '#60A5FA', borderRadius: 3 }} />
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Goal: {hydrationGoal}L</div>
         </div>
@@ -315,6 +332,20 @@ export default function Dashboard() {
             </button>
           </div>
           <LogIntake />
+        </div>
+      )}
+
+      {/* Hydration Modal */}
+      {showHydration && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: '#0A0A0F', zIndex: 2000, overflowY: 'auto'
+        }}>
+          <HydrationTracker 
+            onClose={() => setShowHydration(false)} 
+            hydrationL={hydrationL} 
+            setHydrationL={setHydrationL} 
+          />
         </div>
       )}
     </div>
